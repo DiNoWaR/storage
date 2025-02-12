@@ -2,6 +2,7 @@ package com.teletronics.storage.controller;
 
 import com.teletronics.storage.model.FileEntity;
 import com.teletronics.storage.service.FileService;
+import com.teletronics.storage.constants.Constants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,8 @@ import java.util.Map;
 public class FileController {
 
     private final FileService fileService;
-    private final int MAX_TAGS_NUMBER = 5;
 
-    @Operation(summary = "Load file")
+    @Operation(summary = "Load file to storage")
     @PostMapping("/upload")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file,
                                         @RequestParam(value = "is_public", defaultValue = "true") boolean isPublic,
@@ -29,14 +29,22 @@ public class FileController {
                                         @RequestHeader("user_id") String userId) {
 
         if (userId == null || userId.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка: user_id обязателен"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка: user_id обязателен"));
         }
 
-        if (tags.size() > MAX_TAGS_NUMBER) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка: Максимальное количество тегов — 5"));
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка: Файл обязателен и не может быть пустым"));
         }
 
-        return ResponseEntity.ok(fileService.uploadFileToS3(file, tags));
+        if (tags.size() > Constants.MAX_TAGS_NUMBER) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка: Максимальное количество тегов — 5"));
+        }
+
+        if (fileService.fileExists(userId, file)) {
+            return ResponseEntity.status(409).body(Map.of("message", "Файл уже загружен"));
+        }
+
+        return ResponseEntity.ok(fileService.uploadFile(userId, file, tags));
     }
 
     @Operation(summary = "Get files list")
