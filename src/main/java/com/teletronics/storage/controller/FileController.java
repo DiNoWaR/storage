@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/files")
@@ -18,13 +19,24 @@ import java.util.List;
 public class FileController {
 
     private final FileService fileService;
+    private final int MAX_TAGS_NUMBER = 5;
 
     @Operation(summary = "Load file")
     @PostMapping("/upload")
-    public ResponseEntity<FileEntity> uploadFile(@RequestParam("file") MultipartFile file,
-                                                 @RequestParam("visibility") String visibility,
-                                                 @RequestParam("tags") List<String> tags) {
-        return ResponseEntity.ok(fileService.uploadFile(file, visibility, tags));
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file,
+                                        @RequestParam(value = "is_public", defaultValue = "true") boolean isPublic,
+                                        @RequestParam("tags") List<String> tags,
+                                        @RequestHeader("user_id") String userId) {
+
+        if (userId == null || userId.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка: user_id обязателен"));
+        }
+
+        if (tags.size() > MAX_TAGS_NUMBER) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ошибка: Максимальное количество тегов — 5"));
+        }
+
+        return ResponseEntity.ok(fileService.uploadFileToS3(file, tags));
     }
 
     @Operation(summary = "Get files list")

@@ -15,8 +15,9 @@ import java.util.List;
 public class FileEntity {
     @Id
     private String id;
+    private String ownerId;
     private String filename;
-    private String visibility;
+    private boolean isPublic;
     private List<String> tags;
     private long size;
     private String downloadUrl;
