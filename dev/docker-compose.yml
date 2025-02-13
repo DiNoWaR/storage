@@ -6,8 +6,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: myaccesskey
-      MINIO_ROOT_PASSWORD: mysecretkey
+      MINIO_ROOT_USER: teletronics
+      MINIO_ROOT_PASSWORD: teletronics
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -19,9 +19,9 @@ services:
     entrypoint: >
       /bin/sh -c "
       sleep 5;
-      mc alias set local http://minio:9000 myaccesskey mysecretkey;
-      mc mb local/my-default-bucket;
-      mc policy set public local/my-default-bucket;
+      mc alias set local http://minio:9000 teletronics teletronics;
+      mc mb local/teletronics;
+      mc anonymous set public local/teletronics;
       echo 'Bucket created!';
       exit 0;
       "
@@ -34,7 +34,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongoadmin
       MONGO_INITDB_ROOT_PASSWORD: secret
-      MONGO_INITDB_DATABASE: mydatabase
+      MONGO_INITDB_DATABASE: storage_metadata
     volumes:
       - mongo_data:/data/db
 
@@ -62,7 +62,7 @@ services:
       MINIO_ACCESS_KEY: test_access_key
       MINIO_SECRET_KEY: test_secret_key
       MINIO_BUCKET: teletronics
-      SPRING_DATA_MONGODB_URI: mongodb://mongoadmin:secret@mongo:27017/storage
+      SPRING_DATA_MONGODB_URI: mongodb://mongoadmin:secret@mongodb:27017/storage_metadata?authSource=admin
     depends_on:
       - minio
       - mongo
