@@ -1,5 +1,6 @@
 package com.teletronics.storage.service;
 
+import com.teletronics.storage.dto.FileEntityDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.teletronics.storage.constants.Constants;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -25,6 +28,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -40,7 +44,7 @@ public class FileService {
     @Value("${minio.bucket}")
     private String s3Bucket;
 
-    public FileEntity uploadFile(String userId, MultipartFile file, boolean isPublic, List<String> tags) {
+    public FileEntityDTO uploadFile(String userId, MultipartFile file, boolean isPublic, List<String> tags) {
         var processedTags = processTags(tags);
         if (!tagService.allTagsExist(processedTags)) {
             throw new IllegalArgumentException(Constants.TAG_IS_NOT_ALLOWED_ERROR + processedTags);
@@ -72,7 +76,7 @@ public class FileService {
                     .build();
 
             logger.info("File uploaded successfully: key={}", fileKey);
-            return fileRepository.save(newFile);
+            return fileToDTOMapper.apply(fileRepository.save(newFile));
 
         } catch (Exception ex) {
             logger.error("Error uploading file to storage: key={}, error={}", fileKey, ex.getMessage(), ex);
@@ -92,19 +96,91 @@ public class FileService {
         }
     }
 
-    public Page<FileEntity> getFiles(String ownerId, String tag, int page, int size, String sortField, String sortOrder) {
+    public Page<FileEntityDTO> getFiles(String ownerId, String tag, int page, int size, String sortField, String sortOrder) {
         Sort.Direction direction = sortOrder.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
 
+        Page<FileEntity> fileEntities;
+
         if (tag != null && !tag.isEmpty()) {
-            return fileRepository.findByTagAndAccess(tag.toLowerCase(), ownerId, pageable);
+            fileEntities = fileRepository.findByTagAndAccess(tag.toLowerCase(), ownerId, pageable);
         } else {
-            return fileRepository.findByPublicOrOwner(ownerId, pageable);
+            fileEntities = fileRepository.findByPublicOrOwner(ownerId, pageable);
+        }
+
+        return fileEntities.map(fileToDTOMapper);
+    }
+
+    public FileEntityDTO updateFileName(String fileId, String newFilename, String userId) {
+        var file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException(Constants.FILE_NOT_FOUND_ERROR));
+
+        if (!file.getOwnerId().equals(userId)) {
+            throw new IllegalArgumentException(Constants.USER_IS_NOT_FILE_OWNER_ERROR);
+        }
+
+        if (newFilename == null || newFilename.trim().isEmpty()) {
+            throw new IllegalArgumentException(Constants.EMPTY_FILE_NAME_ERROR);
+        }
+
+        newFilename = newFilename.trim().replace(" ", "_");
+        if (file.getFilename().equals(newFilename)) {
+            return fileToDTOMapper.apply(file);
+        }
+
+        var oldFileKey = file.getOwnerId() + "/" + file.getFilename();
+        var newFileKey = file.getOwnerId() + "/" + newFilename;
+
+        try {
+            s3Client.copyObject(CopyObjectRequest.builder()
+                    .sourceBucket(s3Bucket)
+                    .sourceKey(oldFileKey)
+                    .destinationBucket(s3Bucket)
+                    .destinationKey(newFileKey)
+                    .build());
+
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(s3Bucket)
+                    .key(oldFileKey)
+                    .build());
+
+            var newDownloadUrl = String.format("%s/%s/%s", Constants.URL_PREFIX, s3Bucket, newFileKey);
+            file.setFilename(newFilename);
+            file.setDownloadUrl(newDownloadUrl);
+            fileRepository.save(file);
+
+            logger.info("File renamed: {} -> {}", oldFileKey, newFileKey);
+            return fileToDTOMapper.apply(file);
+
+        } catch (Exception ex) {
+            logger.error("Failed to rename file: {}, error={}", fileId, ex.getMessage(), ex);
+            throw new RuntimeException(Constants.FILE_RENAME_ERROR, ex);
         }
     }
 
-    public void deleteFile(String id) {
-        fileRepository.deleteById(id);
+    public void deleteFile(String fileId, String userId) {
+        var fileOptional = fileRepository.findById(fileId);
+        if (fileOptional.isEmpty()) {
+            return;
+        }
+
+        var file = fileOptional.get();
+        if (!file.getOwnerId().equals(userId)) {
+            throw new IllegalArgumentException(Constants.USER_IS_NOT_FILE_OWNER_ERROR);
+        }
+
+        var fileKey = file.getOwnerId() + "/" + file.getFilename();
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(s3Bucket)
+                    .key(fileKey)
+                    .build());
+
+            fileRepository.deleteById(fileId);
+        } catch (Exception ex) {
+            logger.error("Failed to delete file: {}, error={}", fileId, ex.getMessage(), ex);
+            throw new RuntimeException(Constants.FILE_DELETE_ERROR, ex);
+        }
     }
 
     private String generateFileHash(MultipartFile file) throws NoSuchAlgorithmException, IOException {
@@ -127,4 +203,14 @@ public class FileService {
                 .map(tag -> tag.trim().toLowerCase())
                 .collect(Collectors.toSet());
     }
+
+    private static final Function<FileEntity, FileEntityDTO> fileToDTOMapper = file -> FileEntityDTO.builder()
+            .id(file.getId())
+            .filename(file.getFilename())
+            .tags(file.getTags())
+            .contentType(file.getContentType())
+            .fileSize(file.getFileSize())
+            .uploadDate(file.getUploadDate())
+            .downloadUrl(file.getDownloadUrl())
+            .build();
 }

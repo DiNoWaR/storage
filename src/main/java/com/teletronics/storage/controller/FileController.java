@@ -1,9 +1,8 @@
 package com.teletronics.storage.controller;
 
-import com.teletronics.storage.model.FileEntity;
+import com.teletronics.storage.dto.FileEntityDTO;
 import com.teletronics.storage.service.FileService;
 import com.teletronics.storage.constants.Constants;
-import com.teletronics.storage.service.TagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -44,8 +43,9 @@ public class FileController {
         return ResponseEntity.ok(fileService.uploadFile(userId, file, isPublic, tags));
     }
 
+    @Operation(summary = "Get files list")
     @GetMapping("/list")
-    public ResponseEntity<Page<FileEntity>> getFiles(
+    public ResponseEntity<?> getFiles(
             @RequestParam(required = false) String tag,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -53,20 +53,38 @@ public class FileController {
             @RequestParam(defaultValue = "desc") String sortOrder,
             @RequestHeader(value = "user_id") String userId) {
 
-        Page<FileEntity> files = fileService.getFiles(userId, tag, page, size, sortField, sortOrder);
+        Page<FileEntityDTO> files = fileService.getFiles(userId, tag, page, size, sortField, sortOrder);
         return ResponseEntity.ok(files);
     }
 
+    @Operation(summary = "Rename a file")
+    @PutMapping("/{fileId}")
+    public ResponseEntity<?> renameFile(@PathVariable String fileId,
+                                        @RequestParam String newFilename,
+                                        @RequestHeader(value = "user_id") String userId) {
+        try {
+            FileEntityDTO updatedFile = fileService.updateFileName(fileId, newFilename, userId);
+            return ResponseEntity.ok(updatedFile);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("server error", ex.getMessage()));
+        }
+    }
+
     @Operation(summary = "Delete file")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteFile(@PathVariable String id) {
-        fileService.deleteFile(id);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/{fileId}")
+    public ResponseEntity<?> deleteFile(@PathVariable String fileId,
+                                        @RequestHeader(value = "user_id") String userId) {
+        try {
+            fileService.deleteFile(fileId, userId);
+            return ResponseEntity.noContent().build();
+
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("server error", ex.getMessage()));
+        }
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
     }
 }

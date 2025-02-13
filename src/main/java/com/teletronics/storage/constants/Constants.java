@@ -13,4 +13,10 @@ public class Constants {
     public static final String TAG_EXISTS_ERROR = "Tag already exists";
     public static final String TAG_IS_EMPTY_ERROR = "Tag is empty";
     public static final String TAG_IS_NOT_ALLOWED_ERROR = "One or more tags do not exist in the system: ";
+
+    public static final String USER_IS_NOT_FILE_OWNER_ERROR = "User is not owner of this file";
+    public static final String EMPTY_FILE_NAME_ERROR = "Filename cannot be empty";
+    public static final String FILE_NOT_FOUND_ERROR = "File not found";
+    public static final String FILE_RENAME_ERROR = "File rename failed";
+    public static final String FILE_DELETE_ERROR = "File deletion failed";
 }
