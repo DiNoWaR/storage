@@ -42,7 +42,7 @@ public class FileService {
 
     public FileEntity uploadFile(String userId, MultipartFile file, boolean isPublic, List<String> tags) {
         var processedTags = processTags(tags);
-        if (!tagService.existsByNameInIgnoreCase(processedTags)) {
+        if (!tagService.allTagsExist(processedTags)) {
             throw new IllegalArgumentException(Constants.TAG_IS_NOT_ALLOWED_ERROR + processedTags);
         }
 
@@ -85,7 +85,7 @@ public class FileService {
             var fileHash = generateFileHash(file);
             var filename = file.getOriginalFilename();
 
-            return fileRepository.existsByOwnerIdAndFilenameOrFileHash(ownerId, filename, fileHash);
+            return Boolean.TRUE.equals(fileRepository.existsByOwnerIdAndFilenameOrFileHash(ownerId, filename, fileHash));
         } catch (Exception ex) {
             logger.error(Constants.FILE_EXISTS_CHECK_ERROR, ex.getMessage(), ex);
             throw new RuntimeException(Constants.FILE_EXISTS_CHECK_ERROR, ex);

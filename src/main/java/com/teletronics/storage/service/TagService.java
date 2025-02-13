@@ -34,11 +34,11 @@ public class TagService {
         return tagName;
     }
 
-    public boolean existsByNameIgnoreCase(String name) {
-        return tagRepository.existsByNameIgnoreCase(name);
+    public boolean allTagsExist(Set<String> tags) {
+        return tagRepository.countByNameInIgnoreCase(tags) == tags.size();
     }
 
-    public boolean existsByNameInIgnoreCase(Set<String> names) {
-        return tagRepository.existsByNameInIgnoreCase(names);
+    public boolean tagExists(String tag) {
+        return tagRepository.countByNameIgnoreCase(tag) > 0;
     }
 }

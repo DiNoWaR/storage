@@ -16,5 +16,5 @@ public interface FileRepository extends MongoRepository<FileEntity, String> {
     @Query("{'$or': [{'isPublic': true}, {'ownerId': ?0}]}")
     Page<FileEntity> findByPublicOrOwner(String ownerId, Pageable pageable);
 
-    boolean existsByOwnerIdAndFilenameOrFileHash(String ownerId, String filename, String fileHash);
+    Boolean existsByOwnerIdAndFilenameOrFileHash(String ownerId, String filename, String fileHash);
 }

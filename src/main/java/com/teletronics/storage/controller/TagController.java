@@ -30,7 +30,7 @@ public class TagController {
             return ResponseEntity.badRequest().body(Map.of("message", Constants.TAG_IS_EMPTY_ERROR));
         }
 
-        if (tagService.existsByNameIgnoreCase(normalizedTag)) {
+        if (tagService.tagExists(normalizedTag)) {
             return ResponseEntity.status(409).body(Map.of("message", Constants.TAG_EXISTS_ERROR));
         }
 
