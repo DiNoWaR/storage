@@ -1,6 +1,9 @@
 package com.teletronics.storage.constants;
 
 public class Constants {
+    public static final int DEFAULT_PAGE = 0;
+    public static final int DEFAULT_SIZE = 10;
+
     public static final int MAX_TAGS_NUMBER = 5;
     public static final String URL_PREFIX = "http://localhost:9000";
 
