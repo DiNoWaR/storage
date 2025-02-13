@@ -12,5 +12,5 @@ public class Constants {
 
     public static final String TAG_EXISTS_ERROR = "Tag already exists";
     public static final String TAG_IS_EMPTY_ERROR = "Tag is empty";
-
+    public static final String TAG_IS_NOT_ALLOWED_ERROR = "One or more tags do not exist in the system: ";
 }

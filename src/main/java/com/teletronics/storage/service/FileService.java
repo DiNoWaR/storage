@@ -35,12 +35,17 @@ public class FileService {
 
     private final S3Client s3Client;
     private final FileRepository fileRepository;
+    private final TagService tagService;
 
     @Value("${minio.bucket}")
     private String s3Bucket;
 
     public FileEntity uploadFile(String userId, MultipartFile file, boolean isPublic, List<String> tags) {
         var processedTags = processTags(tags);
+        if (!tagService.existsByNameInIgnoreCase(processedTags)) {
+            throw new IllegalArgumentException(Constants.TAG_IS_NOT_ALLOWED_ERROR + processedTags);
+        }
+
         var fileName = file.getOriginalFilename().replace(" ", "_");
         var fileKey = userId + "/" + fileName;
 
@@ -118,6 +123,8 @@ public class FileService {
     }
 
     private Set<String> processTags(List<String> tags) {
-        return tags.stream().map(String::toLowerCase).collect(Collectors.toSet());
+        return tags.stream()
+                .map(tag -> tag.trim().toLowerCase())
+                .collect(Collectors.toSet());
     }
 }

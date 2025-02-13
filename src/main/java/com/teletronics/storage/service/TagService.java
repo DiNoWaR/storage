@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,5 +36,9 @@ public class TagService {
 
     public boolean existsByNameIgnoreCase(String name) {
         return tagRepository.existsByNameIgnoreCase(name);
+    }
+
+    public boolean existsByNameInIgnoreCase(Set<String> names) {
+        return tagRepository.existsByNameInIgnoreCase(names);
     }
 }
