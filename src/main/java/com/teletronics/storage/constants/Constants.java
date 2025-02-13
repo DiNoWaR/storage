@@ -2,4 +2,10 @@ package com.teletronics.storage.constants;
 
 public class Constants {
     public static final int MAX_TAGS_NUMBER = 5;
+    public static final String MINIO_PREFIX = "http://minio:9000";
+
+    public static final String FILE_UPLOAD_ERROR = "Error with uploading file to storage";
+    public static final String TAGS_NUMBER_EXCEED_ERROR = "You can put up to 5 tags";
+    public static final String FILE_EXISTS_ERROR = "File already exists";
+    public static final String EMPTY_FILE_ERROR = "File can not be empty";
 }

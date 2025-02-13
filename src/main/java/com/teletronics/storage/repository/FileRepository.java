@@ -10,5 +10,5 @@ import java.util.List;
 public interface FileRepository extends MongoRepository<FileEntity, String> {
     List<FileEntity> findByTagsContaining(String tag);
 
-    boolean existsByUserIdAndFilenameOrFileHash(String userId, String filename, String fileHash);
+    boolean existsByOwnerIdAndFilenameOrFileHash(String ownerId, String filename, String fileHash);
 }

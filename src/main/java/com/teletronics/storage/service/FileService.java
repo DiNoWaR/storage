@@ -1,5 +1,6 @@
 package com.teletronics.storage.service;
 
+import com.teletronics.storage.constants.Constants;
 import com.teletronics.storage.model.FileEntity;
 import com.teletronics.storage.repository.FileRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.List;
-import java.util.UUID;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +31,9 @@ public class FileService {
     @Value("${minio.bucket}")
     private String s3Bucket;
 
-    public FileEntity uploadFile(String userId, MultipartFile file, List<String> tags) {
-        var fileKey = UUID.randomUUID() + "_" + file.getOriginalFilename();
+    public FileEntity uploadFile(String userId, MultipartFile file, boolean isPublic, List<String> tags) {
+        var processedTags = processTags(tags);
+        var fileKey = userId + "/" + file.getOriginalFilename();
 
         try {
             s3Client.putObject(
@@ -39,15 +43,16 @@ public class FileService {
                             .build(),
                     RequestBody.fromBytes(file.getBytes())
             );
-        } catch (Exception e) {
-            throw new RuntimeException("Ошибка загрузки файла в MinIO", e);
+        } catch (Exception ex) {
+            throw new RuntimeException(Constants.FILE_UPLOAD_ERROR, ex);
         }
 
-        var downloadUrl = String.format("http://localhost:9000/%s/%s", s3Bucket, fileKey);
+        var downloadUrl = String.format("%s/%s/%s", Constants.MINIO_PREFIX, s3Bucket, fileKey);
         var newFile = FileEntity.builder()
                 .filename(file.getOriginalFilename())
                 .ownerId(userId)
-                .tags(tags)
+                .isPublic(isPublic)
+                .tags(processedTags)
                 .size(file.getSize())
                 .downloadUrl(downloadUrl)
                 .build();
@@ -55,12 +60,12 @@ public class FileService {
         return fileRepository.save(newFile);
     }
 
-    public boolean fileExists(String userId, MultipartFile file) {
+    public boolean fileExists(String ownerId, MultipartFile file) {
         try {
             String fileHash = generateFileHash(file);
             String filename = file.getOriginalFilename();
 
-            return fileRepository.existsByUserIdAndFilenameOrFileHash(userId, filename, fileHash);
+            return fileRepository.existsByOwnerIdAndFilenameOrFileHash(ownerId, filename, fileHash);
         } catch (Exception e) {
             throw new RuntimeException("Ошибка при проверке файла", e);
         }
@@ -87,5 +92,9 @@ public class FileService {
 
         byte[] hashBytes = digest.digest();
         return Base64.getEncoder().encodeToString(hashBytes);
+    }
+
+    private Set<String> processTags(List<String> tags) {
+        return tags.stream().map(String::toLowerCase).collect(Collectors.toSet());
     }
 }

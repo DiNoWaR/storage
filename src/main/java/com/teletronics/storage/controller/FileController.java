@@ -15,36 +15,31 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/files")
-@Tag(name = "File API", description = "API for file upload")
+@Tag(name = "File Storage API", description = "API for file upload")
 @RequiredArgsConstructor
 public class FileController {
 
     private final FileService fileService;
 
     @Operation(summary = "Load file to storage")
-    @PostMapping("/upload")
-    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file,
-                                        @RequestParam(value = "is_public", defaultValue = "true") boolean isPublic,
-                                        @RequestParam("tags") List<String> tags,
-                                        @RequestHeader("user_id") String userId) {
-
-        if (userId == null || userId.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка: user_id обязателен"));
-        }
+    @PostMapping("/")
+    public ResponseEntity<?> uploadFile(@RequestParam(value = "file", required = true) MultipartFile file,
+                                        @RequestParam(value = "is_public", required = false, defaultValue = "true") boolean isPublic,
+                                        @RequestParam(value = "tags", required = false) List<String> tags,
+                                        @RequestHeader(value = "user_id", required = true) String userId) {
 
         if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка: Файл обязателен и не может быть пустым"));
+            return ResponseEntity.badRequest().body(Map.of("message", Constants.EMPTY_FILE_ERROR));
         }
 
         if (tags.size() > Constants.MAX_TAGS_NUMBER) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка: Максимальное количество тегов — 5"));
+            return ResponseEntity.badRequest().body(Map.of("message", Constants.TAGS_NUMBER_EXCEED_ERROR));
         }
 
         if (fileService.fileExists(userId, file)) {
-            return ResponseEntity.status(409).body(Map.of("message", "Файл уже загружен"));
+            return ResponseEntity.status(409).body(Map.of("message", Constants.FILE_EXISTS_ERROR));
         }
-
-        return ResponseEntity.ok(fileService.uploadFile(userId, file, tags));
+        return ResponseEntity.ok(fileService.uploadFile(userId, file, isPublic, tags));
     }
 
     @Operation(summary = "Get files list")

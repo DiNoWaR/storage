@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
+import java.util.Set;
 
 @Document(collection = "files")
 @Getter
@@ -18,7 +19,7 @@ public class FileEntity {
     private String ownerId;
     private String filename;
     private boolean isPublic;
-    private List<String> tags;
+    private Set<String> tags;
     private long size;
     private String downloadUrl;
 }
