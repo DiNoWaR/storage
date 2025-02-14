@@ -41,4 +41,10 @@ public class TagService {
     public boolean tagExists(String tag) {
         return tagRepository.countByNameIgnoreCase(tag) > 0;
     }
+
+    public Set<String> processTags(List<String> tags) {
+        return tags.stream()
+                .map(tag -> tag.trim().toLowerCase())
+                .collect(Collectors.toSet());
+    }
 }

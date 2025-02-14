@@ -21,7 +21,7 @@ public class TagController {
     @GetMapping("/list")
     public ResponseEntity<?> getTags() {
         try {
-            return ResponseEntity.ok(tagService.getTags());
+            return ResponseEntity.ok(Map.of("tags", tagService.getTags()));
         } catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("server error", ex.getMessage()));
@@ -41,7 +41,7 @@ public class TagController {
             }
 
             tagService.createTag(normalizedTag);
-            return ResponseEntity.ok(normalizedTag);
+            return ResponseEntity.ok(Map.of("Tag created", normalizedTag));
         } catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("server error", ex.getMessage()));
@@ -52,7 +52,7 @@ public class TagController {
     public ResponseEntity<?> deleteTag(@RequestParam String tagName) {
         try {
             tagService.deleteTag(tagName);
-            return ResponseEntity.ok("Tag deleted: " + tagName);
+            return ResponseEntity.ok(Map.of("Tag deleted", tagName));
         } catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("server error", ex.getMessage()));

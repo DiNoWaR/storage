@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -25,11 +26,9 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -37,23 +36,21 @@ import java.util.stream.Collectors;
 public class FileService {
     private static final Logger logger = LoggerFactory.getLogger(FileService.class);
 
+    private final Map<String, String> uploadStatus = new ConcurrentHashMap<>();
+
     private final S3Client s3Client;
     private final FileRepository fileRepository;
-    private final TagService tagService;
 
     @Value("${minio.bucket}")
     private String s3Bucket;
 
-    public FileEntityDTO uploadFile(String userId, MultipartFile file, boolean isPublic, List<String> tags) {
-        var processedTags = processTags(tags);
-        if (!tagService.allTagsExist(processedTags)) {
-            throw new IllegalArgumentException(Constants.TAG_IS_NOT_ALLOWED_ERROR + processedTags);
-        }
-
-        var fileName = file.getOriginalFilename().replace(" ", "_");
-        var fileKey = userId + "/" + fileName;
-
+    @Async("teletronicsPool")
+    public void uploadFileAsync(String fileId, String userId, MultipartFile file, boolean isPublic, Set<String> tags) {
         try {
+            uploadStatus.put(fileId, Constants.STATUS_IN_PROGRESS);
+            var fileName = file.getOriginalFilename().replace(" ", "_");
+            var fileKey = userId + "/" + fileName;
+
             s3Client.putObject(
                     PutObjectRequest.builder()
                             .bucket(s3Bucket)
@@ -64,22 +61,22 @@ public class FileService {
 
             var downloadUrl = String.format("%s/%s/%s", Constants.URL_PREFIX, s3Bucket, fileKey);
             var newFile = FileEntity.builder()
+                    .id(fileId)
                     .filename(fileName)
-                    .contentType(file.getContentType())
                     .ownerId(userId)
                     .fileHash(generateFileHash(file))
-                    .isPublic(isPublic)
-                    .uploadDate(Instant.now())
-                    .tags(processedTags)
+                    .contentType(file.getContentType())
                     .fileSize(file.getSize())
+                    .uploadDate(Instant.now())
+                    .isPublic(isPublic)
+                    .tags(tags)
                     .downloadUrl(downloadUrl)
                     .build();
 
-            logger.info("File uploaded successfully: key={}", fileKey);
-            return fileToDTOMapper.apply(fileRepository.save(newFile));
-
+            fileRepository.save(newFile);
+            uploadStatus.put(fileId, Constants.STATUS_COMPLETED);
         } catch (Exception ex) {
-            logger.error("Error uploading file to storage: key={}, error={}", fileKey, ex.getMessage(), ex);
+            uploadStatus.put(fileId, Constants.STATUS_FAILED);
             throw new RuntimeException(Constants.FILE_UPLOAD_ERROR, ex);
         }
     }
@@ -158,6 +155,10 @@ public class FileService {
         }
     }
 
+    public String getUploadStatus(String fileId) {
+        return uploadStatus.getOrDefault(fileId, Constants.STATUS_NOT_FOUND);
+    }
+
     public void deleteFile(String fileId, String userId) {
         var fileOptional = fileRepository.findById(fileId);
         if (fileOptional.isEmpty()) {
@@ -196,12 +197,6 @@ public class FileService {
 
         byte[] hashBytes = digest.digest();
         return Base64.getEncoder().encodeToString(hashBytes);
-    }
-
-    private Set<String> processTags(List<String> tags) {
-        return tags.stream()
-                .map(tag -> tag.trim().toLowerCase())
-                .collect(Collectors.toSet());
     }
 
     private static final Function<FileEntity, FileEntityDTO> fileToDTOMapper = file -> FileEntityDTO.builder()
