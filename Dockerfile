@@ -2,6 +2,9 @@ FROM openjdk:17-jdk-slim AS builder
 
 WORKDIR /app
 COPY . .
+
+RUN chmod +x gradlew
+RUN ./gradlew test
 RUN ./gradlew bootJar
 
 FROM openjdk:17-jdk-slim
