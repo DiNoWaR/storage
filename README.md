@@ -67,7 +67,7 @@ This project is implemented using **Spring Boot**, **MongoDB**, and **AWS S3 (or
 This command will:
 
 - Build the application using **Gradle**.
-- Run unit and integration tests.
+- Run unit tests.
 - Start the application along with **MongoDB** and **MinIO** storage.
 
 4. Once the application is running, you can access the API using tools like **Postman** or **cURL**.
