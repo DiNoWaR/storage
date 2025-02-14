@@ -25,11 +25,11 @@ This project is implemented using **Spring Boot**, **MongoDB**, and **AWS S3 (or
 ✔️ **File Listing & Filtering**
 
 - Users can retrieve a **paginated list of files**, filtering by **tag** and sorting by:
-    - **Filename**
-    - **Upload Date**
-    - **Tag**
-    - **Content Type**
-    - **File Size**
+  - **Filename**
+  - **Upload Date**
+  - **Tag**
+  - **Content Type**
+  - **File Size**
 - Users can view **all PUBLIC files** or **only their own files**.
 
 ✔️ **File Identification & Download**
@@ -38,15 +38,6 @@ This project is implemented using **Spring Boot**, **MongoDB**, and **AWS S3 (or
 - Each file receives a **unique, non-guessable download link**.
 - Both **PRIVATE and PUBLIC files** can be downloaded via this link.
 
-### **Non-Functional Requirements**
-
-✔️ **Backend Framework:** Implemented with **Spring Boot** for rapid development and scalability.\
-✔️ **Database:** Uses **MongoDB** for metadata storage.\
-✔️ **Storage:** Uses **AWS S3 / MinIO** for efficient and scalable object storage.\
-✔️ **Testing:** Includes **unit tests and integration tests** for controllers and services.\
-✔️ **Containerization:** The application is built using **Gradle** and shipped as a **Docker image**.\
-✔️ **CI/CD Integration:** Hosted on **GitHub**, with **automated build pipelines**.\
-✔️ **Documentation:** Includes a **README** detailing API usage and deployment instructions.
 
 ## **Technology Stack**
 
@@ -81,3 +72,64 @@ This command will:
 
 4. Once the application is running, you can access the API using tools like **Postman** or **cURL**.
 
+### MinIO Credentials & UI (After docker compose starts)
+
+- MinIO Web UI: http://localhost:9001
+- Access Key: teletronics
+- Secret Key: teletronics
+
+### **Important:**
+🔹 **Tags must be created before using them when uploading files.** If a user wants to assign tags to a file, they must first create those tags in the system.
+
+### **Example API Requests using cURL**
+
+#### **1. Upload a File**
+```sh
+curl -X POST "http://localhost:8080/files/" \
+     -H "user_id: 123e4567-e89b-12d3-a456-426614174000" \
+     -F "file=@/path/to/file.txt" \
+     -F "is_public=true" \
+     -F "tags=java,backend"
+```
+
+#### **2. Get File Upload Status**
+```sh
+curl -X GET "http://localhost:8080/files/status/{fileId}" 
+```
+
+#### **3. List Files (Paginated & Sorted)**
+```sh
+curl -X GET "http://localhost:8080/files/list?page=0&size=10&sortField=uploadDate&sortOrder=desc" \
+     -H "user_id: 123e4567-e89b-12d3-a456-426614174000"
+```
+
+#### **4. Rename a File**
+```sh
+curl -X PUT "http://localhost:8080/files/{fileId}" \
+     -H "user_id: 123e4567-e89b-12d3-a456-426614174000" \
+     -d "newFilename=new_name.txt"
+```
+
+#### **5. Delete a File**
+```sh
+curl -X DELETE "http://localhost:8080/files/{fileId}" \
+     -H "user_id: 123e4567-e89b-12d3-a456-426614174000"
+```
+
+#### **6. Create a Tag**
+```sh
+curl -X POST "http://localhost:8080/tags/" \
+     -d "tagName=java"
+```
+
+#### **7. List Available Tags**
+```sh
+curl -X GET "http://localhost:8080/tags/list"
+```
+
+#### **8. Delete a Tag**
+```sh
+curl -X DELETE "http://localhost:8080/tags/delete?tagName=java"
+```
+
+---
