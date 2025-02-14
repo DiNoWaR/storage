@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -49,8 +50,9 @@ public class FileController {
                 return ResponseEntity.status(409).body(Map.of("message", Constants.FILE_EXISTS_ERROR));
             }
 
-            var processedTags = tagService.processTags(tags);
-            if (!tagService.allTagsExist(processedTags)) {
+            var inputTags = Optional.ofNullable(tags).orElse(List.of());
+            var processedTags = tagService.processTags(inputTags);
+            if (!processedTags.isEmpty() && !tagService.allTagsExist(processedTags)) {
                 return ResponseEntity.badRequest().body(Map.of("message", Constants.TAG_IS_NOT_ALLOWED_ERROR + processedTags));
             }
 
