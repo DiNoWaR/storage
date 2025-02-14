@@ -1,5 +1,7 @@
 package com.teletronics.storage.constants;
 
+import java.util.Set;
+
 public class Constants {
     public static final int DEFAULT_PAGE = 0;
     public static final int DEFAULT_SIZE = 10;
@@ -20,10 +22,14 @@ public class Constants {
     public static final String FILE_NOT_FOUND_ERROR = "File not found";
     public static final String FILE_RENAME_ERROR = "File rename failed";
     public static final String FILE_DELETE_ERROR = "File deletion failed";
+    public static final String INVALID_SORT_FIELD_ERROR = "Invalid sort field: ";
+    public static final String INVALID_SORT_ORDER_ERROR = "Invalid sort order: ";
 
     public static final String STATUS_IN_PROGRESS = "in_progress";
     public static final String STATUS_COMPLETED = "completed";
     public static final String STATUS_FAILED = "failed";
     public static final String STATUS_NOT_FOUND = "not found";
 
+    public static final Set<String> ALLOWED_SORTFIELDS = Set.of("uploaddate", "filename", "filesize");
+    public static final Set<String> ALLOWED_SORT_ORDERS = Set.of("asc", "desc");
 }

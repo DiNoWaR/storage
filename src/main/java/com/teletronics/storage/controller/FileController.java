@@ -87,6 +87,14 @@ public class FileController {
             @RequestHeader(value = "user_id") String userId) {
 
         try {
+            if (!Constants.ALLOWED_SORTFIELDS.contains(sortField.toLowerCase())) {
+                return ResponseEntity.badRequest().body(Map.of("error", Constants.INVALID_SORT_FIELD_ERROR + sortField));
+            }
+
+            if (!Constants.ALLOWED_SORT_ORDERS.contains(sortOrder.toLowerCase())) {
+                return ResponseEntity.badRequest().body(Map.of("error", Constants.INVALID_SORT_ORDER_ERROR + sortOrder));
+            }
+
             var finalPage = (page == null || page < 0) ? Constants.DEFAULT_PAGE : page;
             var finalSize = (size == null || size <= 0) ? Constants.DEFAULT_SIZE : size;
 
