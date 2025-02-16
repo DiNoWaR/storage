@@ -81,6 +81,11 @@ This command will:
 ### **Important:**
 🔹 **Tags must be created before using them when uploading files.** If a user wants to assign tags to a file, they must first create those tags in the system.
 
+🔹 **Upload process is asynchronous.** We do not want to block server during file uploading. So user will get an id of file and can check the upload status using endpoint. 
+```
+curl -X GET "http://localhost:8080/files/status/{fileId}" 
+```
+
 ### **Example API Requests using cURL**
 
 #### **1. Upload a File**
